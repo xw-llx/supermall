@@ -1,5 +1,17 @@
-import { createApp } from 'vue'
+import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 
-createApp(App).use(router).mount('#app')
+import Vant,{Lazyload} from 'vant';
+// options 为可选参数，无则不传
+Vue.use(Lazyload);
+Vue.use(Vant);
+
+Vue.config.productionTip = false
+Vue.prototype.$bus = new Vue()
+
+
+new Vue({
+  render: h => h(App),
+  router
+}).$mount('#app')

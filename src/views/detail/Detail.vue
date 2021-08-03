@@ -1,6 +1,9 @@
 <template>
   <div id="detail">
-    <detail-nav-bar class="detail-nav" @titleClick="titleClick" ref="nav"/>
+    <detail-nav-bar class="detail-nav" @titleClick="titleClick" ref="nav" />
+    <ul>
+      <li v-for="(item,index) in $store.state.cartList" :key="index">{{item}}</li>
+    </ul>
     <scroll
       class="content"
       ref="scroll"
@@ -19,7 +22,7 @@
       <!-- 热门推荐(图片) -->
       <goods-list ref="recommends" :goods="recommends" />
     </scroll>
-    <detail-bottom-bar @addToCart="addToCart"></detail-bottom-bar>
+    <detail-bottom-bar @addCart="addToCart"></detail-bottom-bar>
     <back-top @click.native="backClick" v-show="isShowBackTop" />
   </div>
 </template>
@@ -41,7 +44,7 @@ import BackTop from "components/content/backTop/BackTop";
 import GoodsList from "components/content/goods/GoodsList";
 
 import { itemListenerMixin } from "common/mixin";
-import { debouce } from "common/utils";
+import {BACKTOP_DISTANCE} from 'common/const'
 
 import {
   getDetail,
@@ -63,10 +66,10 @@ export default {
       paramInfo: {},
       commentInfo: {},
       recommends: [],
-      isShowBackTop: false,
       themeTopYs: [],
       getThemeTopY: null,
-      currentIndex:0
+      currentIndex: 0,
+      isShowBackTop: false,
     };
   },
   mixins: [itemListenerMixin],
@@ -182,6 +185,7 @@ export default {
       this.themeTopYs.push(this.$refs.params.$el.offsetTop);
       this.themeTopYs.push(this.$refs.comment.$el.offsetTop);
       this.themeTopYs.push(this.$refs.recommends.$el.offsetTop);
+      this.themeTopYs.push(Number.MAX_VALUE);
       console.log(this.themeTopYs);
     },
     addToCart() {
@@ -206,26 +210,59 @@ export default {
       // console.log(position);
       // 1.获取y值
       const positionY = -position.y;
+
       // 2.拿positionY跟主题中的值进行对比
-      // [0, 2626, 3991, 4253]
+      // [0, 2626, 3991, 4253,Number.MAX_VALUE]
+      // console.log(Number.MAX_VALUE);
+
       // positionY在0和2626之间,index=0
       // positionY在2626和3991之间包括=2661,index=1
+      // positionY在3991和4253之间包括=3991,index=2
+      // positionY在4253和js最大值之间包括=4253,index=3
+
       // positionY超过4253值或等于4253值时,index=3
       var length = this.themeTopYs.length;
-      for (let i = 0; i < length; i++) {
+      for (let i = 0; i < length - 1; i++) {
         // 这里的positionY大于主题中i的位置且小于主题中i+1的位置
         // if (positionY>this.themeTopYs[i]&&positionY<this.themeTopYs[i+1]) {
         //   console.log(i);
         // }
-        if (this.currentIndex!==i&&((i < length - 1 &&
-            positionY >= this.themeTopYs[i] &&
-            positionY < this.themeTopYs[i + 1]) ||
-          (i === length - 1 && positionY >= this.themeTopYs[i]))) {
+        if (
+          this.currentIndex !== i &&
+          positionY >= this.themeTopYs[i] &&
+          positionY < this.themeTopYs[i + 1]
+        ) {
           this.currentIndex=i
           this.$refs.nav.currentIndex=i
+          // this.$refs.nav.currentIndex=this.currentIndex
         }
+        // if (this.currentIndex!==i&&((i < length - 1 &&
+        //     positionY >= this.themeTopYs[i] &&
+        //     positionY < this.themeTopYs[i + 1]) ||
+        //   (i === length - 1 && positionY >= this.themeTopYs[i]))) {
+        //   this.currentIndex=i
+        //   this.$refs.nav.currentIndex=i
+        // }
       }
+
+      // 3.是否显示回到顶部
+      this.isShowBackTop = -position.y > BACKTOP_DISTANCE;
     },
+    backClick() {
+      this.$refs.scroll.scrollTo(0, 0);
+    },
+    addToCart(){
+      // console.log('添加购物车');
+      // 1.获取购物车需要展示的信息
+      const prodult={}
+      prodult.image=this.topImages[0]
+      prodult.title=this.goods.title
+      prodult.desc=this.goods.desc
+      prodult.price=this.goods.realPrice
+      prodult.iid=this.iid
+      // 2.将商品添加到购物车里面
+      this.$store.dispatch('addCart',prodult)
+    }
   },
 };
 </script>
